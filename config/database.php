@@ -61,7 +61,7 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            ]) + (env('DB_PERSISTENT', false) ? [PDO::ATTR_PERSISTENT => true] : []) : (env('DB_PERSISTENT', false) ? [PDO::ATTR_PERSISTENT => true] : []),
         ],
 
         'mariadb' => [

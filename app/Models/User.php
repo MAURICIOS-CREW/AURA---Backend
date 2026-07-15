@@ -49,4 +49,14 @@ class User extends Authenticatable {
     public function isMobileUser(): bool{
         return $this->role && in_array($this->role->name, ['resident', 'guard']);
     }
+
+    /**
+     * Relación con el modelo Residence
+     */
+    public function residences()
+    {
+        return $this->belongsToMany(Residence::class, 'user_residences')
+            ->withPivot('is_primary_owner')
+            ->withTimestamps();
+    }
 }

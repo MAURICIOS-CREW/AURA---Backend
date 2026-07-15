@@ -26,9 +26,19 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
 
         $tokenHash = hash('sha256', explode('|', $token, 2)[1]);
 
-        return Cache::remember("sanctum_token:{$tokenHash}", self::CACHE_TTL, function () use ($token) {
-            return parent::findToken($token);
+        $cachedData = Cache::remember("sanctum_token:{$tokenHash}", self::CACHE_TTL, function () use ($token) {
+            $model = parent::findToken($token);
+            return $model ? $model->getAttributes() : null;
         });
+
+        if ($cachedData) {
+            $model = new static();
+            $model->setRawAttributes($cachedData, true);
+            $model->exists = true;
+            return $model;
+        }
+
+        return null;
     }
 
     /**
@@ -70,9 +80,9 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
             $saved = parent::save($options);
         }
 
-        // Actualizamos la caché con la instancia fresca
+        // Actualizamos la caché con los atributos frescos
         if ($saved && $this->token) {
-            Cache::put("sanctum_token:{$this->token}", $this, self::CACHE_TTL);
+            Cache::put("sanctum_token:{$this->token}", $this->getAttributes(), self::CACHE_TTL);
         }
 
         return $saved;

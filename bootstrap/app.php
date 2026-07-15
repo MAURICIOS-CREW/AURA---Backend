@@ -22,6 +22,16 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(prepend: [
+            \App\Http\Middleware\RequireJsonHeader::class,
+        ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\LogApiRequests::class,
+        ]);
+        
+        $middleware->redirectGuestsTo(fn (Request $request) => 
+            $request->is('api/*') ? null : route('login')
+        );
         $middleware->alias([
             'not.banned' => \App\Http\Middleware\EnsureNotBanned::class,
             'admin' => \App\Http\Middleware\EnsureIsAdmin::class,
