@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\Mobile\AuthController;
 use App\Http\Controllers\Api\Mobile\QrController;
 
 use App\Http\Controllers\Api\Mobile\VehicleController;
+use App\Http\Controllers\Api\Mobile\IncidentController;
+use App\Http\Controllers\Api\Mobile\IncidentCommentController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -23,4 +25,8 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     Route::get('/qr/temp', [QrController::class, 'getTempQr']);
 
     Route::apiResource('vehicles', VehicleController::class);
+    
+    Route::apiResource('incidents', IncidentController::class)->except(['destroy']);
+    Route::get('incidents/{incident}/comments', [IncidentCommentController::class, 'index']);
+    Route::post('incidents/{incident}/comments', [IncidentCommentController::class, 'store']);
 });

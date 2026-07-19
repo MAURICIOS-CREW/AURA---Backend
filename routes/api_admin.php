@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\AuthController;
+use App\Http\Controllers\Api\Admin\IncidentController;
+use App\Http\Controllers\Api\Admin\IncidentCommentController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -11,4 +13,10 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
         return $request->user();
     });
     // Aquí irán las demás rutas como CRUD de usuarios, roles, reportes, etc.
+    
+    Route::apiResource('incidents', IncidentController::class)->except(['store']);
+    
+    Route::get('incidents/{incident}/comments', [IncidentCommentController::class, 'index']);
+    Route::post('incidents/{incident}/comments', [IncidentCommentController::class, 'store']);
+    Route::delete('incidents/{incident}/comments/{comment}', [IncidentCommentController::class, 'destroy']);
 });
