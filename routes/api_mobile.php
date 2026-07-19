@@ -24,6 +24,8 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     
     Route::get('/qr/temp', [QrController::class, 'getTempQr']);
 
+    Route::apiResource('access-codes', \App\Http\Controllers\Api\Mobile\AccessCodeController::class);
+
     Route::apiResource('vehicles', VehicleController::class);
     
     Route::apiResource('incidents', IncidentController::class)->except(['destroy']);

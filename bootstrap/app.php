@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Support\Facades\Route::middleware('api')
                 ->prefix('api/mobile')
                 ->group(base_path('routes/api_mobile.php'));
+
+            \Illuminate\Support\Facades\Route::middleware('api')
+                ->prefix('api/access')
+                ->group(base_path('routes/api_access.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
