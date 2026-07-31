@@ -13,6 +13,7 @@ class AccessCode extends Model
 
     protected $fillable = [
         'residence_id',
+        'user_id',
         'guest_name',
         'code',
         'type',
@@ -38,5 +39,10 @@ class AccessCode extends Model
     public function residence()
     {
         return $this->belongsTo(Residence::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

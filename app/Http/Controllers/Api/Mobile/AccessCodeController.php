@@ -52,6 +52,7 @@ class AccessCodeController extends Controller
 
         $code = AccessCode::create([
             'residence_id' => $request->residence_id,
+            'user_id' => $user->id,
             'guest_name' => $request->guest_name,
             'code' => $hash,
             'type' => 'custom',

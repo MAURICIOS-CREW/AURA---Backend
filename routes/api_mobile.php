@@ -17,6 +17,7 @@ Route::get('/ping', function () {
 // Rutas protegidas para usuarios móviles (residentes)
 Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+    Route::post('/auth/fcm', [AuthController::class, 'updateFcmToken']);
     
     Route::get('/profile', function (\Illuminate\Http\Request $request) {
         return $request->user()->load(['role', 'residences.address']);

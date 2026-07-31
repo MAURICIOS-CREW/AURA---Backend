@@ -81,4 +81,23 @@ class AuthController extends Controller
             'expires_in' => 10800,
         ]);
     }
+
+    /**
+     * Endpoint para actualizar el token de FCM del dispositivo móvil
+     */
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate([ 'fcm' => 'required|string', ]);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        
+        $user->fcm_token = $request->fcm;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Token FCM actualizado correctamente'
+        ]);
+    }
 }

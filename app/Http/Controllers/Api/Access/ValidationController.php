@@ -83,8 +83,9 @@ class ValidationController extends Controller
         return $this->logAndRespond($hash, $accessCode, 'granted', 'Acceso permitido', $deviceId, 200);
     }
 
-    private function logAndRespond($hash, $accessCode, $status, $message, $deviceId, $httpStatus)
-    {
+    private function logAndRespond(
+        string $hash, ?AccessCode $accessCode, string $status, string $message, ?string $deviceId, int $httpStatus
+        ): \Illuminate\Http\JsonResponse {
         AccessLog::create([
             'access_code_id' => $accessCode ? $accessCode->id : null,
             'scanned_code' => $hash,
@@ -95,6 +96,15 @@ class ValidationController extends Controller
             'access_type' => 'qr', // Mandatory field in DB
             'method' => 'scan',    // Mandatory field in DB
         ]);
+
+        // Despachar el Job para notificar asíncronamente
+        \App\Jobs\SendAlertJob::dispatch(
+            $accessCode ? $accessCode->id : null,
+            $hash,
+            $status,
+            $message,
+            $deviceId
+        );
 
         return response()->json([
             'status' => $status,
