@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Mobile\AuthController;
 use App\Http\Controllers\Api\Mobile\QrController;
+use App\Http\Controllers\Api\Mobile\ProfileController;
 
 use App\Http\Controllers\Api\Mobile\VehicleController;
 use App\Http\Controllers\Api\Mobile\IncidentController;
@@ -19,9 +20,9 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::post('/auth/fcm', [AuthController::class, 'updateFcmToken']);
     
-    Route::get('/profile', function (\Illuminate\Http\Request $request) {
-        return $request->user()->load(['role', 'residences.address']);
-    });
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::patch('/profile', [ProfileController::class, 'update']);
     
     Route::get('/qr/temp', [QrController::class, 'getTempQr']);
 
