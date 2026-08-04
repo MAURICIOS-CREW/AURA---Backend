@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\IncidentController;
 use App\Http\Controllers\Api\Admin\IncidentCommentController;
+use App\Http\Controllers\Api\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Api\Admin\ContractedServiceController as AdminContractedServiceController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -19,4 +21,15 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     Route::get('incidents/{incident}/comments', [IncidentCommentController::class, 'index']);
     Route::post('incidents/{incident}/comments', [IncidentCommentController::class, 'store']);
     Route::delete('incidents/{incident}/comments/{comment}', [IncidentCommentController::class, 'destroy']);
+
+    // Módulo de Servicios
+    Route::apiResource('services', AdminServiceController::class);
+    Route::post('services/{service}/images', [AdminServiceController::class, 'uploadImages']);
+    Route::delete('services/{service}/images', [AdminServiceController::class, 'deleteImage']);
+    
+    // Módulo de Servicios Contratados
+    Route::get('contracted-services', [AdminContractedServiceController::class, 'index']);
+    Route::get('contracted-services/{contractedService}', [AdminContractedServiceController::class, 'show']);
+    Route::post('contracted-services/{contractedService}/schedule', [AdminContractedServiceController::class, 'schedule']);
+    Route::patch('contracted-services/{contractedService}/status', [AdminContractedServiceController::class, 'updateStatus']);
 });

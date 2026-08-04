@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\Mobile\ProfileController;
 use App\Http\Controllers\Api\Mobile\VehicleController;
 use App\Http\Controllers\Api\Mobile\IncidentController;
 use App\Http\Controllers\Api\Mobile\IncidentCommentController;
+use App\Http\Controllers\Api\Mobile\ServiceController as MobileServiceController;
+use App\Http\Controllers\Api\Mobile\ContractedServiceController as MobileContractedServiceController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -33,4 +35,13 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     Route::apiResource('incidents', IncidentController::class)->except(['destroy']);
     Route::get('incidents/{incident}/comments', [IncidentCommentController::class, 'index']);
     Route::post('incidents/{incident}/comments', [IncidentCommentController::class, 'store']);
+
+    // Módulo de Servicios para Residentes
+    Route::get('services', [MobileServiceController::class, 'index']);
+    Route::get('services/{service}', [MobileServiceController::class, 'show']);
+    Route::post('services/{service}/contract', [MobileContractedServiceController::class, 'contract']);
+    
+    Route::get('contracted-services', [MobileContractedServiceController::class, 'index']);
+    Route::get('contracted-services/{contractedService}', [MobileContractedServiceController::class, 'show']);
+    Route::patch('contracted-services/{contractedService}/complete', [MobileContractedServiceController::class, 'markCompleted']);
 });

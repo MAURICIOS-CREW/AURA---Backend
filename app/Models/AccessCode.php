@@ -13,6 +13,7 @@ class AccessCode extends Model
 
     protected $fillable = [
         'residence_id',
+        'contracted_service_id',
         'user_id',
         'guest_name',
         'code',
@@ -44,5 +45,10 @@ class AccessCode extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function contractedService()
+    {
+        return $this->belongsTo(ContractedService::class, 'contracted_service_id');
     }
 }
