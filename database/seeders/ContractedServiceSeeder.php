@@ -21,7 +21,7 @@ class ContractedServiceSeeder extends Seeder
     public function run(): void
     {
         $residentRole = Role::where('name', 'resident')->first();
-        $residentUser = User::where('role_id', $residentRole?->id)->first();
+        $residentUser = User::where('username', 'juan')->first() ?: User::where('role_id', $residentRole?->id)->first();
 
         if (!$residentUser) {
             $this->command->error('No se encontró un usuario residente. Ejecuta DevUserSeeder y ResidenceSeeder primero.');
@@ -148,7 +148,7 @@ class ContractedServiceSeeder extends Seeder
 
             // 3. Crear el código de acceso QR si aplica
             if ($case['has_qr'] && $case['exact_scheduled_at']) {
-                $randomData = Str::random(40) . $residentUser->id . $contractedService->id . uniqid('qr_', true);
+                $randomData = Str::random(40) . $residentUser->id . uniqid('srv_', true);
                 $codeHash = hash('sha256', $randomData);
 
                 $validFrom = $case['exact_scheduled_at']->copy()->subHour();

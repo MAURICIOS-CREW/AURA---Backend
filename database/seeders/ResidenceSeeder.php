@@ -25,7 +25,7 @@ class ResidenceSeeder extends Seeder
         $residents = User::where('role_id', $residentRole->id)->get();
 
         // Crear una dirección de prueba para asignar a las residencias
-        $address = Address::create([
+        $address = Address::firstOrCreate([
             'name' => 'Calle Principal',
             'cp' => '76000',
         ]);
