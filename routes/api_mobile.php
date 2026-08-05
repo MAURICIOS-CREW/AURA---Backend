@@ -29,6 +29,7 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     Route::get('/qr/temp', [QrController::class, 'getTempQr']);
 
     Route::apiResource('access-codes', \App\Http\Controllers\Api\Mobile\AccessCodeController::class);
+    Route::get('/access-logs', [\App\Http\Controllers\Api\Mobile\AccessCodeController::class, 'logs']);
 
     Route::apiResource('vehicles', VehicleController::class);
     

@@ -130,4 +130,19 @@ class AccessCodeController extends Controller
             'message' => 'Código de acceso eliminado (inhabilitado).'
         ]);
     }
+
+    public function logs(Request $request): JsonResponse
+    {
+        $residenceIds = $request->user()->residences()->pluck('residences.id');
+
+        $logs = \App\Models\AccessLog::with(['accessCode', 'residence'])
+            ->whereIn('residence_id', $residenceIds)
+            ->latest('timestamp')
+            ->paginate($request->integer('per_page', 15));
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $logs,
+        ]);
+    }
 }
