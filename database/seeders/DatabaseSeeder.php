@@ -26,8 +26,15 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             DevUserSeeder::class,
             ResidenceSeeder::class,
+            VehicleSeeder::class,
             ServiceSeeder::class,
+            FinancialChargeSeeder::class,
+            PaymentSeeder::class,
             ContractedServiceSeeder::class,
+            AccessCodeSeeder::class,
+            AccessLogSeeder::class,
+            IncidentSeeder::class,
+            BannedUserSeeder::class,
         ]);
     }
 }

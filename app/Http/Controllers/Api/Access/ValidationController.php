@@ -106,6 +106,29 @@ class ValidationController extends Controller
             $deviceId
         );
 
+        // Disparar evento para Websockets (Laravel Reverb)
+        $websocketData = [
+            'type'              => 'access_log',
+            'status'            => $status,
+            'message'           => $message,
+            'timestamp'         => now()->toIso8601String(),
+            'access_code'       => $accessCode ? [
+                'id'                => $accessCode->id,
+                'guest_name'        => $accessCode->guest_name,
+                'residence_id'      => $accessCode->residence_id,
+                'scanned_code'      => $hash,
+                'device_identifier' => $deviceId,
+                'access_type'       => 'qr',
+                'method'            => 'scan',
+                'valid_from'        => $accessCode->valid_from ? $accessCode->valid_from->format('Y-m-d H:i:s') : null,
+                'valid_until'       => $accessCode->valid_until ? $accessCode->valid_until->format('Y-m-d H:i:s') : null,
+                'uses'              => $accessCode->uses,
+                'max_uses'          => $accessCode->max_uses,
+                'active_days'       => $accessCode->active_days ?? []
+            ] : null
+        ];
+        event(new \App\Events\AccessValidatedEvent($websocketData));
+
         return response()->json([
             'status' => $status,
             'message' => $message,
@@ -115,4 +138,32 @@ class ValidationController extends Controller
             ] : null
         ], $httpStatus);
     }
+
+    /**
+     * Validate vehicle access by license plate.
+     */
+    public function validatePlate(Request $request, \App\Services\PlateValidationService $plateValidationService)
+    {
+        $request->validate([
+            'plate'             => 'required_without_all:hash,license_plate|nullable|string',
+            'hash'              => 'nullable|string',
+            'license_plate'     => 'nullable|string',
+            'device_identifier' => 'nullable|string',
+        ]);
+
+        $rawPlate = $request->input('plate') 
+            ?? $request->input('hash') 
+            ?? $request->input('license_plate');
+            
+        $deviceId = $request->input('device_identifier');
+
+        $result = $plateValidationService->validatePlate($rawPlate, $deviceId);
+
+        return response()->json([
+            'status'  => $result['status'],
+            'message' => $result['message'],
+            'data'    => $result['data'],
+        ], $result['http_status']);
+    }
 }
+

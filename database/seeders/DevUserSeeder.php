@@ -26,6 +26,14 @@ class DevUserSeeder extends Seeder
 
         $devUsers = [
             [
+                'name' => 'Juan Pérez',
+                'username' => 'juan',
+                'email' => 'juan@example.com',
+                'password' => '12345',
+                'phone' => '4421234567',
+                'role_id' => $residentRole?->id,
+            ],
+            [
                 'name' => env('DEV_USER_NAME', 'Super Admin Dev'),
                 'username' => $superadminUsername,
                 'email' => $superadminEmail,

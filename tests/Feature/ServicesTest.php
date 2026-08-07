@@ -301,4 +301,81 @@ class ServicesTest extends TestCase
             ->assertJsonPath('status', 'success')
             ->assertJsonPath('data.status', 'completed');
     }
+
+    public function test_access_codes_index_includes_today_service_qr_and_custom_qrs_and_excludes_future_service_qrs(): void
+    {
+        $service = Service::create([
+            'title' => 'Mantenimiento Eléctrico',
+            'price' => 200.00,
+            'is_active' => true,
+        ]);
+
+        // 1. Custom Access Code
+        AccessCode::create([
+            'residence_id' => $this->residence->id,
+            'user_id' => $this->mobileUser->id,
+            'guest_name' => 'Invitado Juan',
+            'code' => 'hash_custom_123',
+            'type' => 'custom',
+            'is_active' => true,
+        ]);
+
+        // 2. Service Access Code for Today
+        $contractToday = ContractedService::create([
+            'service_id' => $service->id,
+            'user_id' => $this->mobileUser->id,
+            'residence_id' => $this->residence->id,
+            'preferred_date' => now()->format('Y-m-d'),
+            'exact_scheduled_at' => now()->setTime(10, 0),
+            'amount' => 200.00,
+            'status' => 'scheduled',
+        ]);
+
+        AccessCode::create([
+            'residence_id' => $this->residence->id,
+            'contracted_service_id' => $contractToday->id,
+            'user_id' => $this->mobileUser->id,
+            'guest_name' => 'Servicio: Mantenimiento Eléctrico (Hoy)',
+            'code' => 'hash_service_today',
+            'type' => 'service',
+            'valid_from' => now()->setTime(9, 0),
+            'valid_until' => now()->setTime(16, 0),
+            'is_active' => true,
+        ]);
+
+        // 3. Service Access Code for Tomorrow (should NOT be returned)
+        $contractTomorrow = ContractedService::create([
+            'service_id' => $service->id,
+            'user_id' => $this->mobileUser->id,
+            'residence_id' => $this->residence->id,
+            'preferred_date' => now()->addDay()->format('Y-m-d'),
+            'exact_scheduled_at' => now()->addDay()->setTime(10, 0),
+            'amount' => 200.00,
+            'status' => 'scheduled',
+        ]);
+
+        AccessCode::create([
+            'residence_id' => $this->residence->id,
+            'contracted_service_id' => $contractTomorrow->id,
+            'user_id' => $this->mobileUser->id,
+            'guest_name' => 'Servicio: Mantenimiento Eléctrico (Mañana)',
+            'code' => 'hash_service_tomorrow',
+            'type' => 'service',
+            'valid_from' => now()->addDay()->setTime(9, 0),
+            'valid_until' => now()->addDay()->setTime(16, 0),
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($this->mobileUser, ['*'], 'api');
+        $response = $this->getJson('/api/access-codes');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonCount(2, 'data');
+
+        $returnedCodes = collect($response->json('data'))->pluck('code')->toArray();
+        $this->assertContains('hash_custom_123', $returnedCodes);
+        $this->assertContains('hash_service_today', $returnedCodes);
+        $this->assertNotContains('hash_service_tomorrow', $returnedCodes);
+    }
 }

@@ -4,29 +4,28 @@ namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Controllers\Controller;
 use App\Models\AccessCode;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class AccessCodeController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        
-        $residenceIds = $user->residences()->pluck('residences.id');
+        $residenceIds = $request->user()->residences()->pluck('residences.id');
 
-        $codes = AccessCode::whereIn('residence_id', $residenceIds)
-            ->where('type', 'custom')
-            ->orderBy('created_at', 'desc')
+        $codes = AccessCode::with(['contractedService.service'])
+            ->visibleForResident($residenceIds)
+            ->latest()
             ->get();
 
         return response()->json([
             'status' => 'success',
-            'data' => $codes
+            'data' => $codes,
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $request->validate([
             'residence_id' => 'required|exists:residences,id',
@@ -72,12 +71,14 @@ class AccessCodeController extends Controller
         ], 201);
     }
 
-    public function show(Request $request, AccessCode $accessCode)
+    public function show(Request $request, AccessCode $accessCode): JsonResponse
     {
         $user = $request->user();
         if (!$user->residences()->where('residences.id', $accessCode->residence_id)->exists()) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
+
+        $accessCode->load(['contractedService.service']);
 
         return response()->json([
             'status' => 'success',
@@ -85,7 +86,7 @@ class AccessCodeController extends Controller
         ]);
     }
 
-    public function update(Request $request, AccessCode $accessCode)
+    public function update(Request $request, AccessCode $accessCode): JsonResponse
     {
         $user = $request->user();
         if (!$user->residences()->where('residences.id', $accessCode->residence_id)->exists()) {
@@ -115,7 +116,7 @@ class AccessCodeController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, AccessCode $accessCode)
+    public function destroy(Request $request, AccessCode $accessCode): JsonResponse
     {
         $user = $request->user();
         if (!$user->residences()->where('residences.id', $accessCode->residence_id)->exists()) {
@@ -127,6 +128,21 @@ class AccessCodeController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Código de acceso eliminado (inhabilitado).'
+        ]);
+    }
+
+    public function logs(Request $request): JsonResponse
+    {
+        $residenceIds = $request->user()->residences()->pluck('residences.id');
+
+        $logs = \App\Models\AccessLog::with(['accessCode', 'residence', 'vehicle'])
+            ->whereIn('residence_id', $residenceIds)
+            ->latest('timestamp')
+            ->paginate($request->integer('per_page', 15));
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $logs,
         ]);
     }
 }
