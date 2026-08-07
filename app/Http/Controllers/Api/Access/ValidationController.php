@@ -61,7 +61,7 @@ class ValidationController extends Controller
 
         // 3. Días de la semana
         if (!empty($accessCode->active_days)) {
-            $currentDay = $now->dayOfWeekIso; // 1 (Lunes) a 7 (Domingo)
+            $currentDay = $now->dayOfWeekIso; 
             if (!in_array($currentDay, $accessCode->active_days)) {
                 $msg = 'Día no autorizado. El código sólo es válido los días: ' . implode(', ', $accessCode->active_days);
                 return $this->logAndRespond($hash, $accessCode, 'denied', $msg, $deviceId, 403);
