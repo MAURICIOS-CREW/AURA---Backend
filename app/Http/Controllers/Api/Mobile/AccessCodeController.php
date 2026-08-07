@@ -135,7 +135,7 @@ class AccessCodeController extends Controller
     {
         $residenceIds = $request->user()->residences()->pluck('residences.id');
 
-        $logs = \App\Models\AccessLog::with(['accessCode', 'residence'])
+        $logs = \App\Models\AccessLog::with(['accessCode', 'residence', 'vehicle'])
             ->whereIn('residence_id', $residenceIds)
             ->latest('timestamp')
             ->paginate($request->integer('per_page', 15));

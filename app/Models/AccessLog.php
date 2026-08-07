@@ -33,4 +33,9 @@ class AccessLog extends Model
     {
         return $this->belongsTo(Residence::class);
     }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class)->withTrashed();
+    }
 }

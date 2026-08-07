@@ -35,6 +35,39 @@ Retorna la lista paginada de registros de acceso ordenados de manera descendente
     "current_page": 1,
     "data": [
       {
+        "id": 106,
+        "access_type": "entry",
+        "method": "license_plate",
+        "residence_id": 1,
+        "vehicle_id": 5,
+        "access_code_id": null,
+        "guard_user_id": null,
+        "status": "granted",
+        "ai_confidence": 0.98,
+        "timestamp": "2026-08-05 04:00:00",
+        "message": "Acceso automático concedido por lectura de placa ABC-123",
+        "device_identifier": "CAM_NORTH_01",
+        "scanned_code": "ABC-123",
+        "created_at": "2026-08-05T04:00:00.000000Z",
+        "updated_at": "2026-08-05T04:00:00.000000Z",
+        "access_code": null,
+        "residence": {
+          "id": 1,
+          "block": 1,
+          "number": "101"
+        },
+        "vehicle": {
+          "id": 5,
+          "residence_id": 1,
+          "plate": "ABC-123",
+          "brand": "Toyota",
+          "color": "Negro",
+          "created_at": "2026-08-01T10:00:00.000000Z",
+          "updated_at": "2026-08-01T10:00:00.000000Z",
+          "deleted_at": null
+        }
+      },
+      {
         "id": 105,
         "access_type": "qr",
         "method": "scan",
@@ -60,8 +93,10 @@ Retorna la lista paginada de registros de acceso ordenados de manera descendente
         },
         "residence": {
           "id": 1,
-          "name": "Casa 102 - Manzana A"
-        }
+          "block": 1,
+          "number": "101"
+        },
+        "vehicle": null
       }
     ],
     "first_page_url": "http://localhost/api/mobile/access-logs?page=1",
@@ -89,8 +124,8 @@ Retorna la lista paginada de registros de acceso ordenados de manera descendente
     "path": "http://localhost/api/mobile/access-logs",
     "per_page": 15,
     "prev_page_url": null,
-    "to": 1,
-    "total": 1
+    "to": 2,
+    "total": 2
   }
 }
 ```
