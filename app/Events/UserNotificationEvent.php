@@ -4,24 +4,27 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class AccessValidatedEvent implements ShouldBroadcastNow
+class UserNotificationEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public array $data;
+    public array $payload;
+    public ?int $userId;
+    public string $channelName;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(array $data)
+    public function __construct(array $payload, ?int $userId = null, string $channelName = 'access-logs')
     {
-        $this->data = $data;
+        $this->payload = $payload;
+        $this->userId = $userId;
+        $this->channelName = $channelName;
     }
 
     /**
@@ -31,8 +34,14 @@ class AccessValidatedEvent implements ShouldBroadcastNow
      */
     public function broadcastOn(): array
     {
+        if ($this->userId) {
+            return [
+                new PrivateChannel('users.' . $this->userId),
+            ];
+        }
+
         return [
-            new PrivateChannel('access-logs'),
+            new PrivateChannel($this->channelName),
         ];
     }
 
@@ -41,7 +50,7 @@ class AccessValidatedEvent implements ShouldBroadcastNow
      */
     public function broadcastAs(): string
     {
-        return 'AccessValidatedEvent';
+        return 'UserNotificationEvent';
     }
 
     /**
@@ -51,6 +60,6 @@ class AccessValidatedEvent implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
-        return $this->data;
+        return $this->payload;
     }
 }

@@ -80,6 +80,7 @@ services:
             timeout: 5s
 networks:
     sail:
+        name: aura-network
         driver: bridge
 volumes:
     sail-redis:

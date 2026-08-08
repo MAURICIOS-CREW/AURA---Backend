@@ -42,5 +42,6 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     // Módulo de Accesos
     Route::get('access-logs', [AccessLogController::class, 'index']);
 
-
+    // Endpoint de prueba para notificaciones WebSockets (Reverb)
+    Route::post('notifications/test-web', [\App\Http\Controllers\Api\TestNotificationController::class, 'sendTestNotification']);
 });
