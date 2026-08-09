@@ -48,6 +48,7 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     
     // Módulo de Servicios Contratados
     Route::get('contracted-services', [AdminContractedServiceController::class, 'index']);
+    Route::post('contracted-services', [AdminContractedServiceController::class, 'store']);
     Route::get('contracted-services/{contractedService}', [AdminContractedServiceController::class, 'show']);
     Route::post('contracted-services/{contractedService}/schedule', [AdminContractedServiceController::class, 'schedule']);
     Route::patch('contracted-services/{contractedService}/status', [AdminContractedServiceController::class, 'updateStatus']);
@@ -58,6 +59,7 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
 
     // Módulo de Pagos (aprobación de transferencias)
     Route::get('payments', [PaymentController::class, 'index']);
+    Route::get('payments/{payment}', [PaymentController::class, 'show']);
     Route::patch('payments/{payment}/approve', [PaymentController::class, 'approve']);
     Route::patch('payments/{payment}/reject', [PaymentController::class, 'reject']);
 
@@ -68,5 +70,6 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     Route::post('notifications/test-web', [\App\Http\Controllers\Api\TestNotificationController::class, 'sendTestNotification']);
     // Módulo de Residentes
     Route::get('residents', [UserController::class, 'residents']);
+    Route::get('residents/{user}/residences', [UserController::class, 'residences']);
 
 });

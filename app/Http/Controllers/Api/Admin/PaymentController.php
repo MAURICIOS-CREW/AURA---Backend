@@ -32,6 +32,20 @@ class PaymentController extends Controller
         ]);
     }
 
+    public function show(Payment $payment)
+    {
+        $payment->load([
+            'user:id,name,username,email',
+            'financialCharge.contractedService.service:id,title',
+            'validatorAdmin:id,name',
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $payment,
+        ]);
+    }
+
     public function approve(Request $request, Payment $payment)
     {
         $this->authorizeTransferReview($payment);

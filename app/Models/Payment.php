@@ -43,4 +43,23 @@ class Payment extends Model
     {
         return $this->belongsTo(User::class, 'validator_admin_id');
     }
+
+    /**
+     * receipt_url puede venir ya como URL absoluta (recibo hosteado por Stripe) o,
+     * para transferencias, quedar vacía mientras el archivo real vive en `receipt`
+     * (path relativo al disco público). Se resuelve aquí para que el cliente
+     * siempre reciba una URL servible sin tener que conocer la convención de storage.
+     */
+    public function getReceiptUrlAttribute($value)
+    {
+        if (!empty($value) && filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        if (!empty($this->attributes['receipt'])) {
+            return asset('storage/' . ltrim($this->attributes['receipt'], '/'));
+        }
+
+        return $value;
+    }
 }

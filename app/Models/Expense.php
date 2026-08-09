@@ -29,8 +29,25 @@ class Expense extends Model
         'expense_date' => 'date:Y-m-d',
     ];
 
+    protected $appends = [
+        'receipt_url',
+    ];
+
     public function registeredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registered_by_id');
+    }
+
+    public function getReceiptUrlAttribute(): ?string
+    {
+        if (empty($this->receipt)) {
+            return null;
+        }
+
+        if (filter_var($this->receipt, FILTER_VALIDATE_URL)) {
+            return $this->receipt;
+        }
+
+        return asset('storage/' . ltrim($this->receipt, '/'));
     }
 }
