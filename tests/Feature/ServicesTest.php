@@ -326,6 +326,8 @@ class ServicesTest extends TestCase
             'user_id' => $this->mobileUser->id,
             'residence_id' => $this->residence->id,
             'preferred_date' => now()->format('Y-m-d'),
+            'visit_time_from' => '09:00',
+            'visit_time_to' => '12:00',
             'exact_scheduled_at' => now()->setTime(10, 0),
             'amount' => 200.00,
             'status' => 'scheduled',
@@ -349,6 +351,8 @@ class ServicesTest extends TestCase
             'user_id' => $this->mobileUser->id,
             'residence_id' => $this->residence->id,
             'preferred_date' => now()->addDay()->format('Y-m-d'),
+            'visit_time_from' => '09:00',
+            'visit_time_to' => '12:00',
             'exact_scheduled_at' => now()->addDay()->setTime(10, 0),
             'amount' => 200.00,
             'status' => 'scheduled',
@@ -367,7 +371,7 @@ class ServicesTest extends TestCase
         ]);
 
         Sanctum::actingAs($this->mobileUser, ['*'], 'api');
-        $response = $this->getJson('/api/access-codes');
+        $response = $this->getJson('/api/mobile/access-codes');
 
         $response->assertStatus(200)
             ->assertJsonPath('status', 'success')

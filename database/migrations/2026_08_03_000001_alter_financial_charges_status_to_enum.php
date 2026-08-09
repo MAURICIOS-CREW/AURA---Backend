@@ -10,7 +10,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE financial_charges MODIFY COLUMN status ENUM('pending', 'paid', 'cancelled', 'refunded') NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE financial_charges MODIFY COLUMN status ENUM('pending', 'paid', 'cancelled', 'refunded') NOT NULL DEFAULT 'pending'");
+        }
     }
 
     /**
@@ -18,6 +20,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE financial_charges MODIFY COLUMN status VARCHAR(255) NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE financial_charges MODIFY COLUMN status VARCHAR(255) NOT NULL DEFAULT 'pending'");
+        }
     }
 };

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Mobile\IncidentController;
 use App\Http\Controllers\Api\Mobile\IncidentCommentController;
 use App\Http\Controllers\Api\Mobile\ServiceController as MobileServiceController;
 use App\Http\Controllers\Api\Mobile\ContractedServiceController as MobileContractedServiceController;
+use App\Http\Controllers\Api\Mobile\PaymentController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -45,4 +46,8 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
     Route::get('contracted-services', [MobileContractedServiceController::class, 'index']);
     Route::get('contracted-services/{contractedService}', [MobileContractedServiceController::class, 'show']);
     Route::patch('contracted-services/{contractedService}/complete', [MobileContractedServiceController::class, 'markCompleted']);
+
+    // Módulo de Pagos para Residentes
+    Route::get('payments', [PaymentController::class, 'index']);
+    Route::post('payments/pay', [PaymentController::class, 'processPayment']);
 });

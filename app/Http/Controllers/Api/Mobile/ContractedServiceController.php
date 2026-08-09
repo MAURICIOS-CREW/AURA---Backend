@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccessCode;
 use App\Models\ContractedService;
 use App\Models\FinancialCharge;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ContractedServiceController extends Controller
 {
@@ -25,6 +27,8 @@ class ContractedServiceController extends Controller
             'preferred_date' => 'required|date|after_or_equal:today',
             'visit_time_from' => 'required|date_format:H:i',
             'visit_time_to' => 'required|date_format:H:i|after:visit_time_from',
+            'is_recurrent' => 'nullable|boolean',
+            'suggested_schedule' => 'nullable',
             'notes' => 'nullable|string',
             'payment_method' => 'nullable|string',
         ]);
@@ -40,6 +44,8 @@ class ContractedServiceController extends Controller
         }
 
         $now = Carbon::now();
+        $isRecurrent = (bool) $request->boolean('is_recurrent');
+        $suggestedSchedule = $request->suggested_schedule;
 
         // Crear el registro de cargo financiero (financial_charges)
         $charge = FinancialCharge::create([
@@ -61,9 +67,36 @@ class ContractedServiceController extends Controller
             'visit_time_to' => $request->visit_time_to,
             'amount' => $service->price,
             'status' => 'created',
+            'is_recurrent' => $isRecurrent,
+            'suggested_schedule' => $suggestedSchedule,
             'notes' => $request->notes,
             'payment_method' => $request->payment_method ?? 'stripe',
         ]);
+
+        if ($isRecurrent) {
+            $randomData = Str::random(40) . $user->id . uniqid('srv_rec_', true);
+            $codeHash = hash('sha256', $randomData);
+
+            $validFrom = Carbon::parse($request->preferred_date)->startOfDay();
+            $validUntil = Carbon::parse($request->preferred_date)->addYear()->endOfDay();
+
+            AccessCode::create([
+                'residence_id' => $request->residence_id,
+                'contracted_service_id' => $contractedService->id,
+                'user_id' => $user->id,
+                'guest_name' => 'Servicio Recurrente: ' . $service->title,
+                'code' => $codeHash,
+                'type' => 'service',
+                'valid_from' => $validFrom,
+                'valid_until' => $validUntil,
+                'uses' => 0,
+                'max_uses' => null,
+                'active_days' => is_array($suggestedSchedule) ? $suggestedSchedule : null,
+                'start_time' => $request->visit_time_from,
+                'end_time' => $request->visit_time_to,
+                'is_active' => true,
+            ]);
+        }
 
         $contractedService->load(['service', 'residence', 'financialCharge', 'accessCode']);
 

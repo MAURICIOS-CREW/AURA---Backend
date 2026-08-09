@@ -368,11 +368,14 @@ Accept: application/json
   - `preferred_date` (date string `YYYY-MM-DD`, requerido, fecha hoy o posterior): Día sugerido para la visita.
   - `visit_time_from` (time string `HH:MM`, requerido): Hora inicio disponible.
   - `visit_time_to` (time string `HH:MM`, requerido, posterior a `visit_time_from`): Hora fin disponible.
+  - `is_recurrent` (boolean, opcional, default `false`): Indica si el servicio se contratará en modalidad recurrente.
+  - `suggested_schedule` (array / json, opcional): Días u horarios sugeridos para las visitas recurrentes (ej. `["Lunes", "Miércoles"]`).
   - `notes` (string, opcional): Instrucciones para el prestador de servicio.
   - `payment_method` (string, opcional, default `'stripe'`): Método de pago utilizado.
 - **Efecto**:
   - Crea el `financial_charge` correspondiente con `status = 'paid'`.
   - Crea el `contracted_service` con `status = 'created'`.
+  - Si `is_recurrent` es `true`, genera automáticamente un código QR reutilizable en la tabla `access_codes` (`type = 'service'`) con vigencia extendida de 1 año y sin límite rígido de uso.
 - **Respuesta de Éxito (201 Created)**:
 ```json
 {
@@ -389,6 +392,11 @@ Accept: application/json
     "exact_scheduled_at": null,
     "amount": "250.00",
     "status": "created",
+    "is_recurrent": true,
+    "suggested_schedule": [
+      "Lunes",
+      "Miércoles"
+    ],
     "notes": "Tocar timbre principal",
     "payment_method": "stripe",
     "financial_charge": {
@@ -396,7 +404,17 @@ Accept: application/json
       "amount": "250.00",
       "status": "paid"
     },
-    "access_code": null
+    "access_code": {
+      "id": 20,
+      "contracted_service_id": 1,
+      "code": "83ffce8798212...",
+      "type": "service",
+      "valid_from": "2026-08-05T00:00:00.000000Z",
+      "valid_until": "2027-08-05T23:59:59.000000Z",
+      "max_uses": null,
+      "active_days": ["Lunes", "Miércoles"],
+      "is_active": true
+    }
   }
 }
 ```
