@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\Admin\ContractedServiceController as AdminContractedServiceController;
 use App\Http\Controllers\Api\Admin\AccessLogController;
 use App\Http\Controllers\Api\Admin\UserController;
-
+use App\Http\Controllers\Api\Admin\ReportController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -48,5 +48,8 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     Route::post('notifications/test-web', [\App\Http\Controllers\Api\TestNotificationController::class, 'sendTestNotification']);
     // Módulo de Residentes
     Route::get('residents', [UserController::class, 'residents']);
+
+    // Generación de Reportes
+    Route::get('dashboard/report', [ReportController::class, 'dashboard']);
 
 });
