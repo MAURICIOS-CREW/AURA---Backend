@@ -46,14 +46,39 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Generar token Sanctum
-        $tokenResult = $user->createToken('admin-session', ['access-api'], now()->addHours(3));
+        // Generar tokens Sanctum
+        $accessTokenResult = $user->createToken('admin-session', ['access-api'], now()->addHours(3));
+        $refreshTokenResult = $user->createToken('admin-refresh', ['issue-access-token'], now()->addDays(30));
 
         return response()->json([
-            'access_token' => $tokenResult->plainTextToken,
+            'access_token' => $accessTokenResult->plainTextToken,
+            'refresh_token' => $refreshTokenResult->plainTextToken,
             'token_type' => 'bearer',
             'expires_in' => 10800,
             'user' => $user->load('role')
+        ]);
+    }
+
+    /**
+     * Endpoint para renovar la sesión (usando el refresh_token)
+     */
+    public function refresh(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = clone $request->user();
+
+        // Validar que el token actual tenga la habilidad para refrescar
+        if (!$user->currentAccessToken()->can('issue-access-token')) {
+            return response()->json(['error' => 'El token provisto no es válido para renovar sesión'], 403);
+        }
+
+        // Generar un nuevo access token de 3 horas
+        $newAccessTokenResult = $user->createToken('admin-session', ['access-api'], now()->addHours(3));
+
+        return response()->json([
+            'access_token' => $newAccessTokenResult->plainTextToken,
+            'token_type' => 'bearer',
+            'expires_in' => 10800,
         ]);
     }
 }

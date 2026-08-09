@@ -14,6 +14,8 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Rutas protegidas para administradores
 Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+
     Route::get('/profile', function (\Illuminate\Http\Request $request) {
         return $request->user();
     });
