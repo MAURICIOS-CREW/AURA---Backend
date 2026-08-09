@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\IncidentCommentController;
 use App\Http\Controllers\Api\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\Admin\ContractedServiceController as AdminContractedServiceController;
 use App\Http\Controllers\Api\Admin\AccessLogController;
+use App\Http\Controllers\Api\Admin\UserController;
 
 
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -19,10 +20,11 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     // Aquí irán las demás rutas como CRUD de usuarios, roles, reportes, etc.
     
     // Modulo de Incidentes
-    Route::apiResource('incidents', IncidentController::class)->except(['store']);
+    Route::apiResource('incidents', IncidentController::class);
 
     Route::get('incidents/{incident}', [IncidentController::class, 'show']);
     Route::get('incidents', [IncidentController::class, 'index']);
+    Route::post('incidents', [IncidentController::class, 'store']);
 
     Route::get('incidents/{incident}/comments', [IncidentCommentController::class, 'index']);
     Route::post('incidents/{incident}/comments', [IncidentCommentController::class, 'store']);
@@ -42,5 +44,7 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     // Módulo de Accesos
     Route::get('access-logs', [AccessLogController::class, 'index']);
 
+    // Módulo de Residentes
+    Route::get('residents', [UserController::class, 'residents']);
 
 });

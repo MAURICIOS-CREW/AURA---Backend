@@ -10,21 +10,10 @@ class AccessLogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AccessLog::select([
-            'id',
-            'access_type',
-            'method',
-            'status',
-            'message',
-            'timestamp',
-            'vehicle_id',
-            'residence_id',
-            'access_code_id'
-        ])
-        ->with([
-            'accessCode:id,guest_name',
-            'residence:id,block',
-            'vehicle:id,plate,brand,color'
+        $query = AccessLog::with([
+            'accessCode',
+            'residence.address',
+            'vehicle',
         ]);
 
         if ($request->filled('category')) {
