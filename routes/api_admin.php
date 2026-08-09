@@ -9,6 +9,9 @@ use App\Http\Controllers\Api\Admin\ContractedServiceController as AdminContracte
 use App\Http\Controllers\Api\Admin\AccessLogController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\ReportController;
+use App\Http\Controllers\Api\Admin\ExpenseController;
+use App\Http\Controllers\Api\Admin\FinanceController;
+use App\Http\Controllers\Api\Admin\PaymentController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -20,7 +23,13 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
         return $request->user();
     });
     // Aquí irán las demás rutas como CRUD de usuarios, roles, reportes, etc.
-    
+
+    // Generación de Reportes: el PDF se renderiza en el momento (nunca se
+    // guarda en el servidor) y se devuelve como archivo para que el
+    // frontend lo reciba como blob antes de abrir la pestaña nueva.
+    Route::get('reports/{module}/view', [ReportController::class, 'view'])
+        ->where('module', 'dashboard|finance|services');
+
     // Modulo de Incidentes
     Route::apiResource('incidents', IncidentController::class);
 
@@ -43,6 +52,15 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     Route::post('contracted-services/{contractedService}/schedule', [AdminContractedServiceController::class, 'schedule']);
     Route::patch('contracted-services/{contractedService}/status', [AdminContractedServiceController::class, 'updateStatus']);
 
+    // Módulo de Finanzas
+    Route::get('finance/summary', [FinanceController::class, 'summary']);
+    Route::apiResource('expenses', ExpenseController::class);
+
+    // Módulo de Pagos (aprobación de transferencias)
+    Route::get('payments', [PaymentController::class, 'index']);
+    Route::patch('payments/{payment}/approve', [PaymentController::class, 'approve']);
+    Route::patch('payments/{payment}/reject', [PaymentController::class, 'reject']);
+
     // Módulo de Accesos
     Route::get('access-logs', [AccessLogController::class, 'index']);
 
@@ -50,8 +68,5 @@ Route::middleware(['auth:api', 'admin', 'not.banned'])->group(function () {
     Route::post('notifications/test-web', [\App\Http\Controllers\Api\TestNotificationController::class, 'sendTestNotification']);
     // Módulo de Residentes
     Route::get('residents', [UserController::class, 'residents']);
-
-    // Generación de Reportes
-    Route::get('dashboard/report', [ReportController::class, 'dashboard']);
 
 });

@@ -31,6 +31,8 @@ class DatabaseSeeder extends Seeder
             FinancialChargeSeeder::class,
             PaymentSeeder::class,
             ContractedServiceSeeder::class,
+            ExpenseSeeder::class,
+            IncomeCoherenceSeeder::class,
             AccessCodeSeeder::class,
             AccessLogSeeder::class,
             IncidentSeeder::class,
