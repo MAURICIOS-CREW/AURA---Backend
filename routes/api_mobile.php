@@ -49,5 +49,6 @@ Route::middleware(['auth:api', 'mobile', 'not.banned'])->group(function () {
 
     // Módulo de Pagos para Residentes
     Route::get('payments', [PaymentController::class, 'index']);
+    Route::post('payments/stripe/create-intent', [PaymentController::class, 'createIntent']);
     Route::post('payments/pay', [PaymentController::class, 'processPayment']);
 });

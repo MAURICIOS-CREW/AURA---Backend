@@ -18,6 +18,11 @@ class Payment extends Model
         'receipt',
         'validator_admin_id',
         'status',
+        'stripe_payment_intent_id',
+        'stripe_payment_method_id',
+        'failure_code',
+        'failure_reason',
+        'receipt_url',
     ];
 
     protected $casts = [

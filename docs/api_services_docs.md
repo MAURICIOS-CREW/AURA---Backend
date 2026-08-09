@@ -371,11 +371,16 @@ Accept: application/json
   - `is_recurrent` (boolean, opcional, default `false`): Indica si el servicio se contratará en modalidad recurrente.
   - `suggested_schedule` (array / json, opcional): Días u horarios sugeridos para las visitas recurrentes (ej. `["Lunes", "Miércoles"]`).
   - `notes` (string, opcional): Instrucciones para el prestador de servicio.
-  - `payment_method` (string, opcional, default `'stripe'`): Método de pago utilizado.
+  - `payment_method` (string, opcional, default `'stripe'`): Método de pago (`"stripe"`, `"transfer"`, `"cash"`).
+  - `stripe_payment_intent_id` (string, opcional): ID `pi_xxx` obtenido de Stripe tras PaymentSheet.
+  - `payment_method_id` (string, opcional): ID `pm_xxx` del SDK de Stripe para cobro directo.
+  - `receipt` (file o string, opcional): Comprobante adjunto (en caso de pago por transferencia).
 - **Efecto**:
-  - Crea el `financial_charge` correspondiente con `status = 'paid'`.
-  - Crea el `contracted_service` con `status = 'created'`.
-  - Si `is_recurrent` es `true`, genera automáticamente un código QR reutilizable en la tabla `access_codes` (`type = 'service'`) con vigencia extendida de 1 año y sin límite rígido de uso.
+  - Procesa o verifica la transacción con Stripe o registra el comprobante de transferencia.
+  - Si el pago en Stripe o transferencia es exitoso/aprobado, actualiza `financial_charges.status` a `'paid'` y registra `payments.status = 'approved'`.
+  - Si el pago por Stripe es rechazado, registra `payments.status = 'refused'` con la razón del fallo, mantiene `financial_charges.status = 'pending'` y retorna un error HTTP 400.
+  - Si `is_recurrent` es `true`, genera automáticamente un código QR reutilizable en la tabla `access_codes` (`type = 'service'`) con vigencia extendida de 1 año.
+
 - **Respuesta de Éxito (201 Created)**:
 ```json
 {
@@ -415,6 +420,22 @@ Accept: application/json
       "active_days": ["Lunes", "Miércoles"],
       "is_active": true
     }
+  }
+}
+```
+
+- **Respuesta de Error - Rechazo de Pago en Stripe (400 Bad Request)**:
+```json
+{
+  "status": "error",
+  "message": "La tarjeta no cuenta con fondos suficientes.",
+  "decline_code": "insufficient_funds",
+  "failure_reason": "Tarjeta rechazada por Stripe: Your card has insufficient funds.",
+  "payment": {
+    "id": 15,
+    "status": "refused",
+    "failure_code": "insufficient_funds",
+    "failure_reason": "Tarjeta rechazada por Stripe: Your card has insufficient funds."
   }
 }
 ```

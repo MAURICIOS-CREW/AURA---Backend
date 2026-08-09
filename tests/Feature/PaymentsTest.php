@@ -178,4 +178,94 @@ class PaymentsTest extends TestCase
             'status' => 'approved',
         ]);
     }
+
+    public function test_mobile_user_can_create_stripe_payment_intent(): void
+    {
+        $pendingCharge = FinancialCharge::create([
+            'residence_id' => $this->residence->id,
+            'amount' => 500.00,
+            'month' => now()->month,
+            'year' => now()->year,
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($this->mobileUser, ['*'], 'api');
+
+        // Mock StripeService
+        $mockStripe = $this->createMock(\App\Services\StripeService::class);
+        $dummyIntent = \Stripe\PaymentIntent::constructFrom([
+            'id' => 'pi_test_123',
+            'client_secret' => 'pi_test_123_secret_xyz',
+        ]);
+
+        $mockStripe->method('createPaymentIntent')->willReturn($dummyIntent);
+        $mockStripe->method('getPublishableKey')->willReturn('pk_test_mock_key');
+        $this->app->instance(\App\Services\StripeService::class, $mockStripe);
+
+        $response = $this->postJson('/api/mobile/payments/stripe/create-intent', [
+            'items' => [
+                [
+                    'type' => 'financial_charge',
+                    'id' => $pendingCharge->id,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('data.payment_intent_id', 'pi_test_123')
+            ->assertJsonPath('data.client_secret', 'pi_test_123_secret_xyz')
+            ->assertJsonPath('data.publishable_key', 'pk_test_mock_key');
+    }
+
+    public function test_mobile_user_handles_stripe_payment_rejection(): void
+    {
+        $pendingCharge = FinancialCharge::create([
+            'residence_id' => $this->residence->id,
+            'amount' => 800.00,
+            'month' => now()->month,
+            'year' => now()->year,
+            'status' => 'pending',
+        ]);
+
+        Sanctum::actingAs($this->mobileUser, ['*'], 'api');
+
+        // Mock StripeService returning Exception
+        $mockStripe = $this->createMock(\App\Services\StripeService::class);
+        $exception = new \Exception('Your card has insufficient funds.');
+
+        $mockStripe->method('createAndConfirmPaymentIntent')->willThrowException($exception);
+        $mockStripe->method('parseStripeException')->willReturn([
+            'failure_code' => 'insufficient_funds',
+            'failure_reason' => 'Tarjeta rechazada por Stripe: Your card has insufficient funds.',
+            'user_message' => 'La tarjeta no cuenta con fondos suficientes.',
+        ]);
+        $this->app->instance(\App\Services\StripeService::class, $mockStripe);
+
+        $response = $this->postJson('/api/mobile/payments/pay', [
+            'items' => [
+                [
+                    'type' => 'financial_charge',
+                    'id' => $pendingCharge->id,
+                ],
+            ],
+            'payment_method' => 'stripe',
+            'payment_method_id' => 'pm_card_chargeDeclinedInsufficientFunds',
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('status', 'error')
+            ->assertJsonPath('decline_code', 'insufficient_funds');
+
+        // El cargo debe permanecer pendiente
+        $this->assertEquals('pending', $pendingCharge->fresh()->status);
+
+        // Se debe haber creado el registro de pago rechazado (refused)
+        $this->assertDatabaseHas('payments', [
+            'charge_id' => $pendingCharge->id,
+            'user_id' => $this->mobileUser->id,
+            'status' => 'refused',
+            'failure_code' => 'insufficient_funds',
+        ]);
+    }
 }

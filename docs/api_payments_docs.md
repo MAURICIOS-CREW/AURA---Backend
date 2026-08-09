@@ -1,6 +1,6 @@
 # Documentación de APIs - Módulo de Pagos (Móvil / Residentes)
 
-Documentación de los endpoints del módulo de pagos para residentes en la API Móvil (`api_mobile.php`) de Aura.
+Documentación de los endpoints del módulo de pagos e integración de Stripe para residentes en la API Móvil (`api_mobile.php`) de Aura.
 
 ---
 
@@ -15,7 +15,7 @@ Accept: application/json
 
 ## 1. Obtener Resumen de Pagos, Saldo Pendiente e Histórico
 
-Permite al residente consultar su saldo total pendiente por pagar (incluyendo el pago mensual obligatorio recurrente del mes actual y cualquier servicio pendiente), el desglose de conceptos pendientes y su historial de pagos paginado a **10 elementos por página**.
+Permite al residente consultar su saldo total pendiente por pagar (incluyendo la cuota mensual obligatoria y servicios contratados), el desglose de conceptos pendientes y su historial de pagos paginado a **10 elementos por página**.
 
 - **Método**: `GET`
 - **Ruta**: `/api/mobile/payments`
@@ -63,7 +63,7 @@ Permite al residente consultar su saldo total pendiente por pagar (incluyendo el
           "title": "Mantenimiento Mensual - 7/2026",
           "amount": "1500.00",
           "payment_method": "stripe",
-          "receipt_url": "http://localhost/storage/receipts/comprobante123.pdf",
+          "receipt_url": "https://pay.stripe.com/receipts/acct_xxx/ch_xxx/rcpt_xxx",
           "status": "paid",
           "month": 7,
           "year": 2026,
@@ -87,20 +87,18 @@ Permite al residente consultar su saldo total pendiente por pagar (incluyendo el
 
 ---
 
-## 2. Procesar Pago de Deuda Seleccionada
+## 2. Crear Intent de Pago en Stripe (Android PaymentSheet)
 
-Permite al residente realizar el pago de uno o varios conceptos específicos de su saldo pendiente seleccionados desde la aplicación (por ejemplo, únicamente la cuota mensual del mes actual o uno de los servicios contratados).
+Permite a la aplicación móvil Android inicializar el componente nativo de Stripe `PaymentSheet` obteniendo el `client_secret` y la clave pública requeridos.
 
 - **Método**: `POST`
-- **Ruta**: `/api/mobile/payments/pay`
-- **Content-Type**: `application/json` o `multipart/form-data` (si incluye archivo de recibo)
+- **Ruta**: `/api/mobile/payments/stripe/create-intent`
+- **Content-Type**: `application/json`
 - **Payload Esperado**:
-  - `items` (array, requerido, min: 1): Lista de elementos a pagar. Cada objeto contiene:
-    - `type` (string, enum: `"financial_charge"`, `"contracted_service"`, `"monthly_fee"`, requerido).
-    - `id` (integer, opcional para `"monthly_fee"`, requerido para `"financial_charge"` y `"contracted_service"`).
+  - `items` (array, requerido, min: 1): Lista de elementos a pagar.
+    - `type` (string, enum: `"financial_charge"`, `"contracted_service"`, `"monthly_fee"`).
+    - `id` (integer, opcional para `"monthly_fee"`, requerido para los demás).
     - `residence_id` (integer, opcional).
-  - `payment_method` (string, requerido, ej. `"stripe"`, `"card"`, `"transfer"`).
-  - `receipt` (file o string, opcional): Comprobante adjunto.
 
 ### Ejemplo de Payload JSON:
 ```json
@@ -114,8 +112,7 @@ Permite al residente realizar el pago de uno o varios conceptos específicos de 
       "type": "financial_charge",
       "id": 15
     }
-  ],
-  "payment_method": "stripe"
+  ]
 }
 ```
 
@@ -123,22 +120,84 @@ Permite al residente realizar el pago de uno o varios conceptos específicos de 
 ```json
 {
   "status": "success",
+  "data": {
+    "client_secret": "pi_3Pxxx_secret_yyy",
+    "publishable_key": "pk_test_51Pxxx",
+    "payment_intent_id": "pi_3Pxxx",
+    "amount": "2700.00",
+    "currency": "mxn"
+  }
+}
+```
+
+---
+
+## 3. Procesar Pago de Deuda Seleccionada
+
+Permite al residente confirmar y finalizar el pago de conceptos de deuda previamente seleccionados utilizando Stripe o métodos manuales/transferencia con comprobante.
+
+- **Método**: `POST`
+- **Ruta**: `/api/mobile/payments/pay`
+- **Content-Type**: `application/json` o `multipart/form-data`
+- **Payload Esperado**:
+  - `items` (array, requerido, min: 1).
+  - `payment_method` (string, requerido: `"stripe"`, `"transfer"`, `"cash"`).
+  - `stripe_payment_intent_id` (string, opcional): ID `pi_xxx` retornado por `/create-intent` tras ser completado en Android.
+  - `payment_method_id` (string, opcional): ID `pm_xxx` del SDK de Stripe para cobro directo.
+  - `receipt` (file o string, opcional): Comprobante adjunto (en caso de transferencia).
+
+### Ejemplo de Payload JSON (Stripe):
+```json
+{
+  "items": [
+    { "type": "financial_charge", "id": 15 }
+  ],
+  "payment_method": "stripe",
+  "stripe_payment_intent_id": "pi_3Pxxx"
+}
+```
+
+### Respuesta de Éxito - Aprobado (200 OK):
+```json
+{
+  "status": "success",
   "message": "Pago procesado exitosamente.",
   "data": {
-    "total_paid": "2700.00",
+    "total_paid": "1500.00",
     "payment_method": "stripe",
     "payments": [
       {
         "payment_id": 4,
-        "charge_id": 18,
+        "charge_id": 15,
         "amount": "1500.00",
-        "status": "approved"
-      },
+        "receipt_url": "https://pay.stripe.com/receipts/acct_xxx/ch_xxx/rcpt_xxx",
+        "status": "approved",
+        "failure_code": null,
+        "failure_reason": null
+      }
+    ]
+  }
+}
+```
+
+### Respuesta de Error - Pago Rechazado por Stripe (400 Bad Request):
+```json
+{
+  "status": "error",
+  "message": "La tarjeta no cuenta con fondos suficientes.",
+  "decline_code": "insufficient_funds",
+  "failure_reason": "Tarjeta rechazada por Stripe: Your card has insufficient funds.",
+  "data": {
+    "total_paid": "0.00",
+    "payment_method": "stripe",
+    "payments": [
       {
         "payment_id": 5,
         "charge_id": 15,
-        "amount": "1200.00",
-        "status": "approved"
+        "amount": "1500.00",
+        "status": "refused",
+        "failure_code": "insufficient_funds",
+        "failure_reason": "Tarjeta rechazada por Stripe: Your card has insufficient funds."
       }
     ]
   }
@@ -147,10 +206,17 @@ Permite al residente realizar el pago de uno o varios conceptos específicos de 
 
 ---
 
-## 3. Códigos de Error
+## 4. Guía de Requerimientos para Android
 
-| Código HTTP | Escenario | Respuesta JSON |
-| :--- | :--- | :--- |
-| **400 Bad Request** | El residente no posee residencias asociadas | `{"status": "error", "message": "El usuario no tiene residencias asociadas."}` |
-| **401 Unauthorized** | Token ausente o expirado | `{"message": "Unauthenticated."}` |
-| **422 Unprocessable Entity** | Fallo en validación de items o payment_method | `{"message": "The items field is required.", "errors": {"items": ["The items field is required."]}}` |
+Para integrar este flujo correctamente en Android con el SDK Oficial de Stripe (`com.stripe:stripe-android`):
+
+1. **Inicialización**:
+   - Inicializar la clave pública obtenida de la API o del entorno:
+     `PaymentConfiguration.init(context, publishableKey)`
+2. **Flujo Recomendado (PaymentSheet)**:
+   - El usuario selecciona los conceptos a pagar en la app Android.
+   - La app realiza una petición `POST /api/mobile/payments/stripe/create-intent` enviando la lista de `items`.
+   - La app recibe `client_secret` y `payment_intent_id`.
+   - Android presenta `PaymentSheet.presentWithPaymentIntent(clientSecret, configuration)`.
+   - Una vez que la UI de Stripe responde con `PaymentSheetResult.Completed`, la app llama a `POST /api/mobile/payments/pay` pasando `stripe_payment_intent_id` e `items`.
+   - En caso de `PaymentSheetResult.Failed(error)`, Android muestra el error nativo o notifica al backend si se requiere registrar el fallo.

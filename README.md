@@ -107,3 +107,61 @@ To stop the containers:
 ```bash
 ./vendor/bin/sail down
 ```
+
+---
+
+## Configuración de Stripe y Webhooks
+
+### ¿Es obligatorio configurar el Webhook?
+
+**No para el flujo básico actual en desarrollo.** 
+Actualmente la aplicación móvil procesa el pago con Stripe SDK (`PaymentSheet`) y confirma la transacción invocando la API (`POST /api/mobile/payments/pay`), donde el servidor valida sincrónicamente el estado del `PaymentIntent` directamente con los servidores de Stripe.
+
+**Recomendado para:**
+- Procesar pagos asíncronos (ej. OXXO, transferencias bancarias, SPEI).
+- Recibir notificaciones en tiempo real sobre disputas, reembolsos o fallos diferidos.
+
+### Cómo instalar y ejecutar Stripe CLI para desarrollo local
+
+`./sail` ejecuta contenedores Docker de la aplicación, por lo que la herramienta `stripe` CLI debe instalarse en tu sistema operativo host (WSL2 / Ubuntu / macOS) y no como un comando de Sail.
+
+#### 1. Instalación de Stripe CLI
+
+**Ubuntu / WSL2:**
+```bash
+curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee /etc/apt/sources.list.d/stripe.list
+sudo apt update
+sudo apt install stripe
+```
+
+**macOS (Homebrew):**
+```bash
+brew install stripe/stripe-cli/stripe
+```
+
+#### 2. Autenticar Stripe CLI
+```bash
+stripe login
+```
+Sigue las instrucciones en pantalla para autorizar la CLI con tu cuenta de desarrollador de Stripe.
+
+#### 3. Escuchar Webhooks y redirigir al entorno local
+
+Para redirigir los eventos recibidos en Stripe hacia tu contenedor local de Laravel Sail:
+
+```bash
+stripe listen --forward-to localhost/api/stripe/webhook
+```
+
+Al ejecutar el comando, Stripe CLI te entregará un secreto de firma que luce así:
+`Your webhook signing secret is whsec_xxxxxxxxxxxxxxxxxxxxxxxx`
+
+#### 4. Configurar el Secreto en `.env`
+
+Copia el `whsec_...` generado por la terminal y asignalo en tu archivo `.env`:
+
+```env
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+

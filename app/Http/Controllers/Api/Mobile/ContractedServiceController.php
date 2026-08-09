@@ -6,14 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\AccessCode;
 use App\Models\ContractedService;
 use App\Models\FinancialCharge;
+use App\Models\Payment;
 use App\Models\Service;
+use App\Services\StripeService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ContractedServiceController extends Controller
 {
-    public function contract(Request $request, Service $service)
+    public function contract(Request $request, Service $service, StripeService $stripeService)
     {
         if (!$service->is_active) {
             return response()->json([
@@ -31,6 +33,9 @@ class ContractedServiceController extends Controller
             'suggested_schedule' => 'nullable',
             'notes' => 'nullable|string',
             'payment_method' => 'nullable|string',
+            'stripe_payment_intent_id' => 'nullable|string',
+            'payment_method_id' => 'nullable|string',
+            'receipt' => 'nullable',
         ]);
 
         $user = $request->user();
@@ -43,20 +48,78 @@ class ContractedServiceController extends Controller
             ], 403);
         }
 
+        $receiptPath = null;
+        if ($request->hasFile('receipt')) {
+            $receiptPath = $request->file('receipt')->store('receipts', 'public');
+        } elseif (is_string($request->receipt) && !empty($request->receipt)) {
+            $receiptPath = $request->receipt;
+        }
+
         $now = Carbon::now();
         $isRecurrent = (bool) $request->boolean('is_recurrent');
         $suggestedSchedule = $request->suggested_schedule;
+        $paymentMethod = $request->payment_method ?? 'stripe';
 
-        // Crear el registro de cargo financiero (financial_charges)
+        // 1. Crear el registro inicial de cargo financiero
         $charge = FinancialCharge::create([
             'residence_id' => $request->residence_id,
             'amount' => $service->price,
             'month' => $now->month,
             'year' => $now->year,
-            'status' => 'paid', // Simulación de pago previo por Stripe
+            'status' => 'pending',
         ]);
 
-        // Crear la contratación del servicio con estado inicial 'created'
+        // 2. Procesar la transacción mediante el servicio de Stripe
+        $txResult = $stripeService->processPaymentTransaction(
+            $service->price,
+            $paymentMethod,
+            $request->stripe_payment_intent_id,
+            $request->payment_method_id,
+            [
+                'user_id' => (string) $user->id,
+                'service_id' => (string) $service->id,
+            ]
+        );
+
+        $stripeStatus = $txResult['status'];
+        $stripePaymentIntentId = $txResult['payment_intent_id'];
+        $stripePaymentMethodId = $txResult['payment_method_id'];
+        $failureCode = $txResult['failure_code'];
+        $failureReason = $txResult['failure_reason'];
+        $userMessage = $txResult['user_message'];
+
+        // 3. Registrar el pago en la BD
+        $payment = Payment::create([
+            'charge_id' => $charge->id,
+            'user_id' => $user->id,
+            'amount' => $service->price,
+            'payment_method' => $paymentMethod,
+            'receipt' => $receiptPath,
+            'status' => $stripeStatus,
+            'stripe_payment_intent_id' => $stripePaymentIntentId,
+            'stripe_payment_method_id' => $stripePaymentMethodId,
+            'failure_code' => $failureCode,
+            'failure_reason' => $failureReason,
+        ]);
+
+        if ($stripeStatus === 'approved') {
+            $charge->update(['status' => 'paid']);
+        } elseif ($stripeStatus === 'refused') {
+            return response()->json([
+                'status' => 'error',
+                'message' => $userMessage ?? 'El pago del servicio contratado fue rechazado por Stripe.',
+                'decline_code' => $failureCode,
+                'failure_reason' => $failureReason,
+                'payment' => [
+                    'id' => $payment->id,
+                    'status' => 'refused',
+                    'failure_code' => $failureCode,
+                    'failure_reason' => $failureReason,
+                ],
+            ], 400);
+        }
+
+        // 4. Crear la contratación del servicio con estado inicial 'created'
         $contractedService = ContractedService::create([
             'service_id' => $service->id,
             'user_id' => $user->id,
@@ -70,7 +133,7 @@ class ContractedServiceController extends Controller
             'is_recurrent' => $isRecurrent,
             'suggested_schedule' => $suggestedSchedule,
             'notes' => $request->notes,
-            'payment_method' => $request->payment_method ?? 'stripe',
+            'payment_method' => $paymentMethod,
         ]);
 
         if ($isRecurrent) {
