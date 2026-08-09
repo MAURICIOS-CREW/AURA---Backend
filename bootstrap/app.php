@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/api_access.php'));
         },
     )
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['api', 'auth:api']]
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             \App\Http\Middleware\RequireJsonHeader::class,

@@ -23,6 +23,8 @@ class ContractedService extends Model
         'exact_scheduled_at',
         'amount',
         'status',
+        'is_recurrent',
+        'suggested_schedule',
         'notes',
         'payment_method',
         'stripe_payment_id',
@@ -32,6 +34,8 @@ class ContractedService extends Model
         'preferred_date' => 'date:Y-m-d',
         'exact_scheduled_at' => 'datetime',
         'amount' => 'decimal:2',
+        'is_recurrent' => 'boolean',
+        'suggested_schedule' => 'array',
     ];
 
     public function service(): BelongsTo
